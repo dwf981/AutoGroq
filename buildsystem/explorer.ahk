@@ -93,6 +93,7 @@ OnAutoGroqWsl:
 {
     RegRead, ProjectDir, HKCU\Software\Developer, ProjectDir
     ProjectDirWsl := ConvertToWslPath( ProjectDir )
+    WorkingDir := ConvertToWslPath( A_UserProfile ) . "/.autogenstudio"
     ShiftPressed := GetKeyState("Shift","P")
     BatchScript =
     (
@@ -106,9 +107,10 @@ OnAutoGroqWsl:
         should_install=%ShiftPressed%
         if [[ -f "/home/ubuntu/anaconda3/envs/AutoGroq/bin/python" && "$should_install" == "0" ]]; then
             echo "AutoGroq already installed."
+            cd "%ProjectDirWsl%" || { echo "Failed to change directory."; exit 1; }
             source /home/ubuntu/anaconda3/etc/profile.d/conda.sh
             conda activate AutoGroq || { echo "Failed to activate environment."; exit 1; }
-            streamlit run AutoGroq\main.py
+            streamlit run AutoGroq/main.py
         else
             source /home/ubuntu/anaconda3/etc/profile.d/conda.sh
 
@@ -122,12 +124,8 @@ OnAutoGroqWsl:
             cd "%ProjectDirWsl%" || { echo "Failed to change directory."; exit 1; }
             pip install -r requirements.txt || { echo "Failed to install requirements."; exit 1; }
             
-            pip install autogenstudio
-
-
-            mkdir /mnt/c/Users/j/.autogenstudio 2>/dev/null
             rm -rf /home/ubuntu/.autogenstudio
-            ln -s /mnt/c/Users/j/.autogenstudio /home/ubuntu/.autogenstudio
+            ln -s %WorkingDir% /home/ubuntu/.autogenstudio
 
             echo "AutoGroq installed successfully."
         fi
