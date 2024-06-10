@@ -10,7 +10,9 @@
 
     if (A_Args.Length() > 0) {
         label := A_Args[1]
-        if IsLabel(label) Gosub %label%
+        if IsLabel(label) {
+            Gosub %label%
+        }
         ExitApp
     }
 
@@ -59,7 +61,9 @@ return
 
 OnAutoGroq:
 {
-    RegRead, ProjectDir, HKCU\Software\Developer, ProjectDir
+    ; RegRead, ProjectDir, HKCU\Software\Developer, ProjectDir
+    SplitPath, A_LineFile,, ProjectDir
+    SplitPath, ProjectDir,, ProjectDir
     ShiftPressed := GetKeyState("Shift","P")
     Script =
     (
@@ -95,7 +99,9 @@ OnAutoGroq:
 
 OnAutoGroqWsl:
 {
-    RegRead, ProjectDir, HKCU\Software\Developer, ProjectDir
+    ; RegRead, ProjectDir, HKCU\Software\Developer, ProjectDir
+    SplitPath, A_LineFile,, ProjectDir
+    SplitPath, ProjectDir,, ProjectDir
     ProjectDirWsl := ConvertToWslPath( ProjectDir )
     WorkingDir := ConvertToWslPath( A_UserProfile ) . "/.autogenstudio"
     ShiftPressed := GetKeyState("Shift","P")
