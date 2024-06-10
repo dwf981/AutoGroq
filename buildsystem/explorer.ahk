@@ -8,6 +8,12 @@
     RegRead, DeveloperDir, HKCU\Software\Developer, DeveloperDir
     RegRead, ProjectDir, HKCU\Software\Developer, ProjectDir
 
+    if (A_Args.Length() > 0) {
+        label := A_Args[1]
+        if IsLabel(label) Gosub %label%
+        ExitApp
+    }
+
     ; Project Menu
     AddMenu( "ProjectMenu", "Open Visual Studio &Code`tC", "OnOpenVscode", VSCodePath )
     AddMenu( "ProjectMenu" )
@@ -60,13 +66,11 @@ OnAutoGroq:
 
         set ProjectName=AutoGroq
         set ProjectDir=%ProjectDir%
-        set CLONE_STATUS=0
-        set SHOULD_INSTALL=%ShiftPressed%
+        set should_install=%ShiftPressed%
         call e exist param AutoGroq >nul 2>&1
-        if "!errorlevel!" equ "1" set SHOULD_INSTALL=1
-        if not exist C:\Users\j mklink /j C:\Users\j C:\Users\!username!
+        if "!errorlevel!" equ "1" set should_install=1
 
-        if "!SHOULD_INSTALL!" equ "1" `(
+        if "!should_install!" equ "1" `(
             pushd "!ProjectDir!" || goto :exit
             echo.
             call e remove
@@ -75,7 +79,7 @@ OnAutoGroq:
             call conda install -c conda-forge streamlit
             echo Installing Python packages from requirements.txt
             pip install -r requirements.txt
-            pip install autogenstudio
+            pip install "pydantic>=1.0,<2.0"
             popd
         `)
 
@@ -132,5 +136,5 @@ OnAutoGroqWsl:
     )
     Options := { Visible: "ConEmu", Colors: true, Pause: true, Admin: false }
     RunBash( Options, StripBat(BatchScript), StripBat(BashScript), [], true, true )
+    return
 }
-return
