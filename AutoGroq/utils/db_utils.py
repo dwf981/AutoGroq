@@ -54,14 +54,14 @@ def export_data(db_path):
                 autogen_agent_data['config']['llm_config']['max_tokens'] = MODEL_CHOICES.get(agent['config']['llm_config']['config_list'][0]['model'], MODEL_TOKEN_LIMITS.get(st.session_state.model, 4096))
                 
                 agent_data = (
-                    str(uuid.uuid4()), # Generate a unique ID for the agent
-                    'default',
-                    datetime.datetime.now().isoformat(),
-                    json.dumps(autogen_agent_data['config']),
+                    'default',  # user_id
+                    datetime.datetime.now().isoformat(),  # created_at
+                    None,  # updated_at
                     autogen_agent_data['type'],
-                    json.dumps(autogen_agent_data['skills'])
+                    json.dumps(autogen_agent_data['config'])
                 )
-                cursor.execute("INSERT INTO agents (id, user_id, timestamp, config, type, skills) VALUES (?, ?, ?, ?, ?, ?)", agent_data)
+                print("Agent data to be inserted:", agent_data)
+                cursor.execute("INSERT INTO agent (user_id, created_at, updated_at, type, config) VALUES (?, ?, ?, ?, ?)", agent_data)
                 print(f"Inserted agent: {formatted_agent_name}")
 
             project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -73,31 +73,33 @@ def export_data(db_path):
                         skill_data = file.read()
                         skill_json = create_skill_data(skill_data)
                         skill_data = (
-                            str(uuid.uuid4()),  # Generate a unique ID for the skill
-                            'default',  # Set the user ID to 'default'
-                            datetime.datetime.now().isoformat(),
-                            skill_data,
-                            skill_json['title'],
-                            skill_json['file_name']
+                            'default',  # user_id
+                            datetime.datetime.now().isoformat(),  # created_at
+                            None,  # updated_at
+                            skill_json['title'],  # name
+                            skill_data,  # content
+                            skill_json.get('description', ''),  # description
+                            None,  # secrets
+                            None   # libraries
                         )
-                        cursor.execute("INSERT INTO skills (id, user_id, timestamp, content, title, file_name) VALUES (?, ?, ?, ?, ?, ?)", skill_data)
+                        print("Skill data to be inserted:", skill_data)
+                        cursor.execute("INSERT INTO skill (user_id, created_at, updated_at, name, content, description, secrets, libraries) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", skill_data)
                         print(f"Inserted skill: {skill_json['title']}")
                         inserted_skills.add(skill_name)  # Add the inserted skill to the set
 
             # Access agents from st.session_state for workflow
             workflow_data = get_workflow_from_agents(st.session_state.agents)[0]
             workflow_data = (
-                str(uuid.uuid4()),  # Generate a unique ID for the workflow
-                'default',
-                datetime.datetime.now().isoformat(),
-                json.dumps(workflow_data['sender']),
-                json.dumps(workflow_data['receiver']),
-                workflow_data['type'],
+                'default',  # user_id
+                datetime.datetime.now().isoformat(),  # created_at
+                None,  # updated_at
                 workflow_data['name'],
                 workflow_data['description'],
+                workflow_data['type'],
                 workflow_data['summary_method']
             )
-            cursor.execute("INSERT INTO workflows (id, user_id, timestamp, sender, receiver, type, name, description, summary_method) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", workflow_data)
+            print("Workflow data to be inserted:", workflow_data)
+            cursor.execute("INSERT INTO workflow (user_id, created_at, updated_at, name, description, type, summary_method) VALUES (?, ?, ?, ?, ?, ?, ?)", workflow_data)
             print("Inserted workflow data.")
 
             conn.commit()
