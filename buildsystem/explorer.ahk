@@ -48,12 +48,24 @@ OnSyncWithUpstream:
             echo Upstream remote added.
         `)
 
-        git fetch upstream || goto :error
+        git fetch upstream --tags || goto :error
+
         git checkout main || goto :error
+        
+        git merge upstream/main || goto :merge_conflict
+        
+        git pull upstream main || goto :error
 
-        call t merge upstream/main
-
-        popd
+        git push origin --tags || goto :error
+        
+        popd || goto :error
+        
+        echo Repository synchronized and merged with upstream successfully.
+        goto :exit
+        
+        :merge_conflict
+        echo Merge conflict detected. Opening TortoiseGit commit dialog...
+        "C:\Program Files\TortoiseGit\bin\TortoiseGitProc.exe" /command:commit /path:"%ProjectDir%" /closeonend:1
     )
     Options := { Visible: "ConEmu", Pause: true, Admin: true }
     RunBat( Options, StripBat(BatchScript) )

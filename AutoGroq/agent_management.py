@@ -4,10 +4,10 @@ import os
 import re
 import streamlit as st
 
-from config import LLM_PROVIDER , MODEL_CHOICES, MODEL_TOKEN_LIMITS
+from config import MODEL_CHOICES, MODEL_TOKEN_LIMITS
 
 from utils.auth_utils import get_api_key
-from utils.ui_utils import get_llm_provider, regenerate_json_files_and_zip, update_discussion_and_whiteboard
+from utils.ui_utils import get_llm_provider, update_discussion_and_whiteboard
 
 
 def agent_button_callback(agent_index):
@@ -23,7 +23,7 @@ def agent_button_callback(agent_index):
     return callback
 
 
-def construct_request(agent_name, description, user_request, user_input, rephrased_request, reference_url, skill_results):
+def construct_request(agent_name, description, user_request, user_input, rephrased_request, reference_url, tool_results):
     request = f"Act as the {agent_name} who {description}."
     if user_request:
         request += f" Original request was: {user_request}."
@@ -36,13 +36,13 @@ def construct_request(agent_name, description, user_request, user_input, rephras
         request += f" Reference URL content: {html_content}."
     if st.session_state.discussion:
         request += f" The discussion so far has been {st.session_state.discussion[-50000:]}."
-    if skill_results:
-        request += f" Skill results: {skill_results}."
+    if tool_results:
+        request += f" tool results: {tool_results}."
     return request
 
 
 def display_agents():
-    if "agents" in st.session_state and st.session_state.agents:
+    if "agents" in st.session_state and st.session_state.agents and len(st.session_state.agents) > 0:
         st.sidebar.title("Your Agents")
         st.sidebar.subheader("Click to interact")
         display_agent_buttons(st.session_state.agents)
@@ -185,23 +185,23 @@ def process_agent_interaction(agent_index):
     user_input = st.session_state.get('user_input', '')
     rephrased_request = st.session_state.get('rephrased_request', '')
     reference_url = st.session_state.get('reference_url', '')
-    # Execute associated skills for the agent
+    # Execute associated tools for the agent
     agent = st.session_state.agents[agent_index]
-    agent_skills = agent.get("skills", [])
-    skill_results = {}
-    for skill_name in agent_skills:
-        if skill_name in st.session_state.skill_functions:
-            skill_function = st.session_state.skill_functions[skill_name]
-            skill_result = skill_function()
-            skill_results[skill_name] = skill_result
-    request = construct_request(agent_name, description, user_request, user_input, rephrased_request, reference_url, skill_results)
+    agent_tools = agent.get("tools", [])
+    tool_results = {}
+    for tool_name in agent_tools:
+        if tool_name in st.session_state.tool_functions:
+            tool_function = st.session_state.tool_functions[tool_name]
+            tool_result = tool_function()
+            tool_results[tool_name] = tool_result
+    request = construct_request(agent_name, description, user_request, user_input, rephrased_request, reference_url, tool_results)
     print(f"Request: {request}")
     # Use the dynamic LLM provider to send the request
     api_key = get_api_key()
     llm_provider = get_llm_provider(api_key=api_key)
     llm_request_data = {
         "model": st.session_state.model,
-        "temperature": st.session_state.get('temperature', 0.1),
+        "temperature": st.session_state.temperature,
         "max_tokens": st.session_state.max_tokens,
         "top_p": 1,
         "stop": "TERMINATE",
@@ -245,7 +245,7 @@ def regenerate_agent_description(agent):
     llm_provider = get_llm_provider(api_key=api_key)
     llm_request_data = {
         "model": st.session_state.model,
-        "temperature": st.session_state.get('temperature', 0.1),
+        "temperature": st.session_state.temperature,
         "max_tokens": st.session_state.max_tokens,
         "top_p": 1,
         "stop": "TERMINATE",
