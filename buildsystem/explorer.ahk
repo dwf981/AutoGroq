@@ -87,7 +87,9 @@ OnAutoGroqWsl:
     BatchScript =
     (
 
-        echo !yellow!Installing AutoGroq...!nc!
+        echo !green!Preparing AutoGroq...!nc!
+        md !UserProfile!\.autogenstudio
+        dir /b /s !UserProfile!\.autogenstudio
     )
     BashScript =
     (
