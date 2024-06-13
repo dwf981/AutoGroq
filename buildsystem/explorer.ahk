@@ -22,8 +22,8 @@
     AddMenu( "ProjectMenu", "&README.md...`tR", "OnReadme", BrowserPath )
     AddMenu( "ProjectMenu" )
     AddMenu( "ProjectMenu", "&Sync with Upstream`tS", "OnSyncWithUpstream", ConEmuPath )
-    AddMenu( "ProjectMenu", "&AutoGroq...`tA", "OnAutoGroq", ResDir "github.ico" )
-    AddMenu( "ProjectMenu", "AutoGroq &WSL...`tW", "OnAutoGroqWsl", ResDir "github.ico" )
+    AddMenu( "ProjectMenu", "&AutoGroq...`tA", "OnAutoGroqWsl", ResDir "github.ico" )
+    AddMenu( "ProjectMenu", "Open &Config Local`tL", "OnOpenConfigLocal", VSCodePath )
     AddMenu( "ProjectMenu" )
     AddMenu( "ProjectMenu", "&Edit Project Menu...`tE", "OnEditProjectMenu", VSCodePath )
     ShowMenu( "ProjectMenu" )
@@ -123,5 +123,19 @@ OnAutoGroqWsl:
     )
     Options := { Visible: "ConEmu", Colors: true, Pause: true, Admin: false }
     RunBash( Options, StripBat(BatchScript), StripBat(BashScript), [], true, true )
+    return
+}
+
+OnOpenConfigLocal:
+{
+    FilePath := ProjectDir . "\AutoGroq\config_local.py"
+    ExampleFilePath := ProjectDir . "\AutoGroq\config_local.py.example"
+    ShiftPressed := GetKeyState("Shift", "P")
+
+    if (ShiftPressed) {
+        FileCopy, %ExampleFilePath%, %FilePath%, 1 ; 1 forces the overwrite
+    }
+
+    Run, %VSCodePath% "%FilePath%"
     return
 }
