@@ -17,7 +17,7 @@
     }
 
     ; Project Menu
-    AddMenu( "ProjectMenu", "Open Visual Studio &Code`tC", "OnOpenVscode", VSCodePath )
+    AddMenuItemEditor("ProjectMenu")
     AddMenu( "ProjectMenu" )
     AddMenu( "ProjectMenu", "&README.md...`tR", "OnReadme", BrowserPath )
     AddMenu( "ProjectMenu" )
@@ -25,7 +25,7 @@
     AddMenu( "ProjectMenu", "&AutoGroq...`tA", "OnAutoGroqWsl", ResDir "github.ico" )
     AddMenu( "ProjectMenu", "Open &Config Local`tL", "OnOpenConfigLocal", VSCodePath )
     AddMenu( "ProjectMenu" )
-    AddMenu( "ProjectMenu", "&Edit Project Menu...`tE", "OnEditProjectMenu", VSCodePath )
+    AddMenuItemEditProjectMenu("ProjectMenu")
     ShowMenu( "ProjectMenu" )
     ExitApp
 return ; end of script's auto-execute section
