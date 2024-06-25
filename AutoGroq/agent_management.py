@@ -1,13 +1,14 @@
+# agent_management.py
 
 import base64
 import os
 import re
 import streamlit as st
 
-from config import MODEL_CHOICES, MODEL_TOKEN_LIMITS
+from configs.config import LLM_PROVIDER, MODEL_TOKEN_LIMITS, SUPPORTED_PROVIDERS
 
-from utils.auth_utils import get_api_key
-from utils.ui_utils import get_llm_provider, update_discussion_and_whiteboard
+from utils.api_utils import get_api_key
+from utils.ui_utils import get_llm_provider, get_provider_models, update_discussion_and_whiteboard
 
 
 def agent_button_callback(agent_index):
@@ -55,7 +56,6 @@ def display_agents():
                 st.sidebar.warning("Invalid agent selected for editing.")
     else:
         st.sidebar.warning(f"No agents have yet been created. Please enter a new request.")
-        st.sidebar.warning(f"NOTE: GPT models can only be used locally, not in the online demo.")
         st.sidebar.warning(f"ALSO: If no agents are created, do a hard reset (CTL-F5) and try switching models. LLM results can be unpredictable.")
         st.sidebar.warning(f"SOURCE:  https://github.com/jgravelle/AutoGroq\n\r\n\r https://j.gravelle.us\n\r\n\r DISCORD: https://discord.gg/DXjFPX84gs \n\r\n\r YouTube: https://www.youtube.com/playlist?list=PLPu97iZ5SLTsGX3WWJjQ5GNHy7ZX66ryP")
 
@@ -115,12 +115,33 @@ def display_agent_edit_form(agent, edit_index):
         
         col1, col2 = st.columns([3, 1])
         with col1:
-            selected_model = st.selectbox("Model", options=list(MODEL_CHOICES.keys()), index=list(MODEL_CHOICES.keys()).index(agent['config']['llm_config']['config_list'][0]['model']), key=f"model_select_{edit_index}")
+            current_provider = agent['config'].get('provider', st.session_state.get('provider'))
+            selected_provider = st.selectbox(
+                "Provider",
+                options=SUPPORTED_PROVIDERS,
+                index=SUPPORTED_PROVIDERS.index(current_provider),
+                key=f"provider_select_{edit_index}"
+            )
+
+            provider_models = get_provider_models(selected_provider)
+            current_model = agent['config']['llm_config']['config_list'][0]['model']
+            
+            if current_model not in provider_models:
+                st.warning(f"Current model '{current_model}' is not available for the selected provider. Please select a new model.")
+                current_model = next(iter(provider_models))  # Set to first available model
+            
+            selected_model = st.selectbox(
+                "Model", 
+                options=list(provider_models.keys()),
+                index=list(provider_models.keys()).index(current_model),
+                key=f"model_select_{edit_index}"
+            )
         with col2:
             if st.button("Set for ALL agents", key=f"set_all_agents_{edit_index}"):
                 for agent in st.session_state.agents:
+                    agent['config']['provider'] = selected_provider
                     agent['config']['llm_config']['config_list'][0]['model'] = selected_model
-                    agent['config']['llm_config']['max_tokens'] = MODEL_CHOICES[selected_model]
+                    agent['config']['llm_config']['max_tokens'] = provider_models[selected_model]
                 st.experimental_rerun()
         
         new_description = st.text_area("Description", value=description_value, key=f"desc_{edit_index}")
@@ -142,10 +163,11 @@ def display_agent_edit_form(agent, edit_index):
             if st.button("Save", key=f"save_{edit_index}"):
                 agent['config']['name'] = new_name
                 agent['description'] = agent.get('new_description', new_description)
+                agent['config']['provider'] = selected_provider
                 
                 if selected_model != 'default':
                     agent['config']['llm_config']['config_list'][0]['model'] = selected_model
-                    agent['config']['llm_config']['max_tokens'] = MODEL_CHOICES[selected_model]
+                    agent['config']['llm_config']['max_tokens'] = provider_models[selected_model]
                 else:
                     agent['config']['llm_config']['config_list'][0]['model'] = st.session_state.model
                     agent['config']['llm_config']['max_tokens'] = MODEL_TOKEN_LIMITS.get(st.session_state.model, 4096)
@@ -155,7 +177,7 @@ def display_agent_edit_form(agent, edit_index):
                     del st.session_state['edit_agent_index']
                 if 'new_description' in agent:
                     del agent['new_description']
-                st.session_state.agents[edit_index] = agent 
+                st.session_state.agents[edit_index] = agent
 
 
 def download_agent_file(expert_name):
@@ -180,13 +202,14 @@ def download_agent_file(expert_name):
 
 
 def process_agent_interaction(agent_index):
+    agent = st.session_state.agents[agent_index]
     agent_name, description = retrieve_agent_information(agent_index)
     user_request = st.session_state.get('user_request', '')
     user_input = st.session_state.get('user_input', '')
     rephrased_request = st.session_state.get('rephrased_request', '')
     reference_url = st.session_state.get('reference_url', '')
+    
     # Execute associated tools for the agent
-    agent = st.session_state.agents[agent_index]
     agent_tools = agent.get("tools", [])
     tool_results = {}
     for tool_name in agent_tools:
@@ -194,15 +217,20 @@ def process_agent_interaction(agent_index):
             tool_function = st.session_state.tool_functions[tool_name]
             tool_result = tool_function()
             tool_results[tool_name] = tool_result
+    
     request = construct_request(agent_name, description, user_request, user_input, rephrased_request, reference_url, tool_results)
     print(f"Request: {request}")
-    # Use the dynamic LLM provider to send the request
-    api_key = get_api_key()
-    llm_provider = get_llm_provider(api_key=api_key)
+    
+    # Use the agent-specific provider and model
+    provider = agent['config'].get('provider', st.session_state.get('provider', LLM_PROVIDER))
+    model = agent['config']['llm_config']['config_list'][0]['model']
+    api_key = get_api_key(provider)
+    llm_provider = get_llm_provider(api_key=api_key, provider=provider)
+    
     llm_request_data = {
-        "model": st.session_state.model,
+        "model": model,
         "temperature": st.session_state.temperature,
-        "max_tokens": st.session_state.max_tokens,
+        "max_tokens": agent['config']['llm_config'].get('max_tokens', MODEL_TOKEN_LIMITS.get(model, 4096)),
         "top_p": 1,
         "stop": "TERMINATE",
         "messages": [
@@ -212,6 +240,7 @@ def process_agent_interaction(agent_index):
             }
         ]
     }
+    print(f"Sending request to {provider} using model {model}")
     response = llm_provider.send_request(llm_request_data)
     if response.status_code == 200:
         response_data = llm_provider.process_response(response)
@@ -221,6 +250,9 @@ def process_agent_interaction(agent_index):
             st.session_state['form_agent_name'] = agent_name
             st.session_state['form_agent_description'] = description
             st.session_state['selected_agent_index'] = agent_index
+    else:
+        print(f"Error: Received status code {response.status_code}")
+        print(f"Response: {response.text}")
 
 
 def regenerate_agent_description(agent):
@@ -241,12 +273,16 @@ def regenerate_agent_description(agent):
     """
     print(f"regenerate_agent_description called with agent_name: {agent_name}")
     print(f"regenerate_agent_description called with prompt: {prompt}")
-    api_key = get_api_key()
-    llm_provider = get_llm_provider(api_key=api_key)
+    
+    provider = agent['config'].get('provider', st.session_state.get('provider', LLM_PROVIDER))
+    model = agent['config']['llm_config']['config_list'][0]['model']
+    api_key = get_api_key(provider)
+    llm_provider = get_llm_provider(api_key=api_key, provider=provider)
+    
     llm_request_data = {
-        "model": st.session_state.model,
+        "model": model,
         "temperature": st.session_state.temperature,
-        "max_tokens": st.session_state.max_tokens,
+        "max_tokens": agent['config']['llm_config'].get('max_tokens', MODEL_TOKEN_LIMITS.get(model, 4096)),
         "top_p": 1,
         "stop": "TERMINATE",
         "messages": [
