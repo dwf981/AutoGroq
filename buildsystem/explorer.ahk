@@ -6,7 +6,7 @@
 
     SetRegView 64
     RegRead, DeveloperDir, HKCU\Software\Developer, DeveloperDir
-    RegRead, ProjectDir, HKCU\Software\Developer, ProjectDir
+    ProjectDir := GetProjectDir()
 
     if (A_Args.Length() > 0) {
         label := A_Args[1]
@@ -40,7 +40,6 @@ return
 
 OnAutoGroq:
 {
-    ; RegRead, ProjectDir, HKCU\Software\Developer, ProjectDir
     SplitPath, A_LineFile,, ProjectDir
     SplitPath, ProjectDir,, ProjectDir
     ShiftPressed := GetKeyState("Shift","P")
@@ -78,7 +77,6 @@ OnAutoGroq:
 
 OnAutoGroqWsl:
 {
-    ; RegRead, ProjectDir, HKCU\Software\Developer, ProjectDir
     SplitPath, A_LineFile,, ProjectDir
     SplitPath, ProjectDir,, ProjectDir
 
@@ -141,12 +139,15 @@ OnAutoGroqWsl:
 
 OnOpenConfigLocal:
 {
-    FilePath := ProjectDir . "\AutoGroq\config_local.py"
-    ExampleFilePath := ProjectDir . "\AutoGroq\config_local.py.example"
+    SplitPath, A_LineFile,, ProjectDir
+    SplitPath, ProjectDir,, ProjectDir
+
+    FilePath := ProjectDir . "\AutoGroq\configs\config_local.py"
+    ExampleFilePath := ProjectDir . "\AutoGroq\configs\config_local.py.example"
     ShiftPressed := GetKeyState("Shift", "P")
 
     if (ShiftPressed) {
-        FileCopy, %ExampleFilePath%, %FilePath%, 1 ; 1 forces the overwrite
+        Try FileCopy, %ExampleFilePath%, %FilePath%, 1 ; 1 forces the overwrite
     }
 
     Run, %VSCodePath% "%FilePath%"
