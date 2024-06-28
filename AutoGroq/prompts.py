@@ -60,7 +60,7 @@ def get_agents_prompt():
             the info for those specific agents. Do not create new agents.
         2. **Expertise Description**: Provide a brief but thorough description of each agent's expertise 
             based upon the provided text. Do not create new agents.
-        3. **Format**: Return the results in JSON format with values labeled as expert_name, and description.
+        3. **Format**: Return the results in JSON format with values labeled as expert_name, description, role, goal, and backstory.
             'expert_name' should be the agent's title, not their given or proper name.
 
         ALWAYS and ONLY return the results in the following JSON format, with no other narrative, commentary, synopsis, 
@@ -69,6 +69,9 @@ def get_agents_prompt():
             {{
                 "expert_name": "agent_title",
                 "description": "agent_description",
+                "role": "agent_role",
+                "goal": "agent_goal",
+                "backstory": "agent_backstory"
             }}
         ]
         This agent will only have been successful if it has returned the results in the above format 
@@ -132,19 +135,37 @@ def get_generate_tool_prompt(rephrased_tool_request):
                 '''
 
 
-def get_moderator_prompt(discussion_history, goal, last_comment, last_speaker,team_members_str): 
+def get_moderator_prompt(discussion_history, goal, last_comment, last_speaker, team_members_str, current_deliverable, current_phase):
     return f"""
-        This agent is our Moderator Bot. It's goal is to mediate the conversation between a team of AI agents 
+        This agent is our Moderator Bot. Its goal is to mediate the conversation between a team of AI agents 
         in a manner that persuades them to act in the most expeditious and thorough manner to accomplish their goal. 
         This will entail considering the user's stated goal, the conversation thus far, the descriptions 
         of all the available agent/experts in the current team, the last speaker, and their remark. 
-        Based upon a holistic analysis of all the facts at hand, use logic and reasoning to decide who should speak next. 
+        Based upon a holistic analysis of all the facts at hand, use logic and reasoning to decide which team member should speak next. 
         Then draft a prompt directed at that agent that persuades them to act in the most expeditious and thorough manner toward helping this team of agents 
-        accomplish their goal.\n\nTheir goal is: {goal}.\nThe last speaker was {last_speaker}, who said: 
-        {last_comment}\nHere is the current conversational discussion history: {discussion_history}\n
-        And here are the team members and their descriptions:\n{team_members_str}\n\n
+        accomplish their goal.
+
+        Their overall goal is: {goal}.
+        The current deliverable they're working on is: {current_deliverable}
+        The current implementation phase is: {current_phase}
+        The last speaker was {last_speaker}, who said: {last_comment}
+
+        Here is the current conversational discussion history: {discussion_history}
+
+        And here are the team members and their descriptions:
+        {team_members_str}
+
+        IMPORTANT: Your response must start with "To [Agent Name]:", where [Agent Name] is one of the valid team members listed above. Do not address tools or non-existent team members.
+
         This agent's response should be JUST the requested prompt addressed to the next agent, and should not contain 
         any introduction, narrative, or any other superfluous text whatsoever.
+
+        If you believe the current phase of the deliverable has been satisfactorily completed, include the exact phrase 
+        "PHASE_COMPLETED" at the beginning of your response, followed by your usual prompt to the next agent focusing on 
+        the next phase or deliverable.
+
+        Remember, we are now in the {current_phase} phase. The agents should focus on actually implementing, coding, 
+        testing, or deploying the solutions as appropriate for the current phase, not just planning.
     """
 
 
