@@ -8,13 +8,7 @@
     RegRead, DeveloperDir, HKCU\Software\Developer, DeveloperDir
     ProjectDir := GetProjectDir()
 
-    if (A_Args.Length() > 0) {
-        label := A_Args[1]
-        if IsLabel(label) {
-            Gosub %label%
-        }
-        ExitApp
-    }
+    CliDispatch()
 
     ; Project Menu
     AddMenuItemEditor("ProjectMenu")
