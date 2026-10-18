@@ -1,4 +1,4 @@
-#SingleInstance, Force
+#SingleInstance Off
 #NoTrayIcon
 #Include <AuxLib>
 
@@ -8,7 +8,7 @@
     RegRead, DeveloperDir, HKCU\Software\Developer, DeveloperDir
     ProjectDir := GetProjectDir()
 
-    CliDispatch()
+    Cli_Dispatch()
 
     ; Project Menu
     AddMenuItemEditor("ProjectMenu")
