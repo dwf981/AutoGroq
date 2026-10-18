@@ -2,11 +2,7 @@
 #NoTrayIcon
 #Include <AuxLib>
 
-    AuxLibLoad()
-
-    SetRegView 64
-    RegRead, DeveloperDir, HKCU\Software\Developer, DeveloperDir
-    ProjectDir := GetProjectDir()
+    AuxLibLoad( "default" )
 
     Cli_Dispatch()
 
