@@ -4,9 +4,6 @@
 
     AuxLibLoad( "default" )
 
-    Cli_Dispatch()
-
-    ; Project Menu
     AddMenuItemEditor("ProjectMenu")
     AddMenu( "ProjectMenu" )
     AddMenu( "ProjectMenu", "&README.md...`tR", "OnReadme", BrowserPath )
