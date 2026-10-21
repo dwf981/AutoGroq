@@ -58,7 +58,7 @@ OnAutoGroq:
         popd
     )
         
-    RunBat({ Visible: "ConEmu", Colors: true, Pause: true }, StripBat( Script ) )
+    Run_Bat({ Visible: "ConEmu", Colors: true, Pause: true }, StripBat( Script ) )
     return
 }
 
